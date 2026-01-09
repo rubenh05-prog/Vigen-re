@@ -1,4 +1,4 @@
-const CACHE = "vigenere-pwa-v1";
+const CACHE = "vigenere-pwa-v2";
 
 const FILES = [
   "./",
