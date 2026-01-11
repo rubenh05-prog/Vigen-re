@@ -18,33 +18,27 @@ body{
   max-width:600px;
   margin:auto;
 }
-
 textarea,input,button{
   font-size:1rem;
   padding:12px;
   border-radius:8px;
   border:1px solid #ccc;
 }
-
 textarea{
   width:100%;
   min-height:120px;
   resize:vertical;
 }
-
 .key-row{
   display:flex;
   gap:8px;
   margin-top:10px;
 }
-
 .key-row input{ flex:1; }
-
 .key-row button{
   width:48px;
   font-size:18px;
 }
-
 button.action{
   width:100%;
   margin-top:10px;
@@ -53,7 +47,6 @@ button.action{
   font-weight:bold;
   border:none;
 }
-
 .output{
   background:#f5f5f5;
   padding:12px;
@@ -62,6 +55,11 @@ button.action{
   white-space:pre-wrap;
   word-break:break-word;
 }
+.note{
+  margin-top:8px;
+  font-size:0.9em;
+  opacity:0.7;
+}
 </style>
 </head>
 
@@ -69,7 +67,7 @@ button.action{
 
 <h1>Additive Unicode-Chiffre (Vigenère-Prinzip)</h1>
 
-<textarea id="text" placeholder="Text eingeben (Klartext oder Geheimtext)"></textarea>
+<textarea id="text" placeholder="Text eingeben (Klartext oder empfangener Code)"></textarea>
 
 <div class="key-row">
   <input id="key" type="password" placeholder="Schlüsselwort">
@@ -83,15 +81,17 @@ button.action{
 
 <button class="action" onclick="copyOutput()">Ergebnis kopieren & zurücksetzen</button>
 
+<div class="note">
+ℹ️ Verschlüsselte Texte werden automatisch Base64-kodiert und sind dadurch Messenger-sicher (WhatsApp, Signal, Telegram).
+</div>
+
 <script>
 /* -------------------------------------------------
-   Unicode-Helfer & Normalisierung
+   Unicode-Normalisierung & Hilfsfunktionen
 ------------------------------------------------- */
 
 function clean(str){
-  return str
-    .normalize("NFC")      // Unicode-Normalisierung
-    .replace(/\r\n/g,"\n");// saubere Zeilenumbrüche
+  return str.normalize("NFC").replace(/\r\n/g,"\n");
 }
 
 function toCodePoints(str){
@@ -103,29 +103,40 @@ function fromCodePoints(arr){
 }
 
 /* -------------------------------------------------
-   Kryptologik (reversibel & stabil)
+   Vigenère-artige Unicode-Chiffre
 ------------------------------------------------- */
 
 function vigenereEncrypt(text, key){
   const t = toCodePoints(text);
   const k = toCodePoints(key);
-
   return fromCodePoints(
-    t.map((cp, i) =>
-      (cp + k[i % k.length]) % 0x110000
-    )
+    t.map((cp,i)=>(cp + k[i % k.length]) % 0x110000)
   );
 }
 
 function vigenereDecrypt(text, key){
   const t = toCodePoints(text);
   const k = toCodePoints(key);
-
   return fromCodePoints(
-    t.map((cp, i) =>
-      (cp - k[i % k.length] + 0x110000) % 0x110000
-    )
+    t.map((cp,i)=>(cp - k[i % k.length] + 0x110000) % 0x110000)
   );
+}
+
+/* -------------------------------------------------
+   Base64-Transport (Messenger-sicher)
+------------------------------------------------- */
+
+function encodeForTransport(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+
+function decodeFromTransport(str){
+  const bin = atob(str.trim());
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 /* -------------------------------------------------
@@ -141,7 +152,10 @@ function encrypt(){
   const plain = clean(text.value);
   const k = clean(key.value);
 
-  output.textContent = vigenereEncrypt(plain, k);
+  const cipherUnicode = vigenereEncrypt(plain, k);
+  const transportSafe = encodeForTransport(cipherUnicode);
+
+  output.textContent = transportSafe;
 }
 
 function decrypt(){
@@ -155,10 +169,16 @@ function decrypt(){
       ? output.textContent
       : text.value;
 
-  const cipher = clean(source);
-  const k = clean(key.value);
+  let decoded;
+  try{
+    decoded = decodeFromTransport(source);
+  }catch(e){
+    alert("Kein gültiger Base64-Text (möglicherweise beschädigt)");
+    return;
+  }
 
-  output.textContent = vigenereDecrypt(cipher, k);
+  const k = clean(key.value);
+  output.textContent = vigenereDecrypt(decoded, k);
 }
 
 /* -------------------------------------------------
@@ -169,10 +189,10 @@ function copyOutput(){
   const value = output.textContent;
   if(!value) return;
 
-  navigator.clipboard.writeText(value).then(() => {
-    text.value = "";
-    key.value = "";
-    output.textContent = "";
+  navigator.clipboard.writeText(value).then(()=>{
+    text.value="";
+    key.value="";
+    output.textContent="";
     text.focus();
   });
 }
@@ -184,13 +204,12 @@ function copyOutput(){
 function toggleKey(){
   const input = document.getElementById("key");
   const btn = document.getElementById("toggleKey");
-
-  if(input.type === "password"){
-    input.type = "text";
-    btn.textContent = "🙈";
+  if(input.type==="password"){
+    input.type="text";
+    btn.textContent="🙈";
   }else{
-    input.type = "password";
-    btn.textContent = "👁️";
+    input.type="password";
+    btn.textContent="👁️";
   }
 }
 
