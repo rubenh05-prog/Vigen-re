@@ -3,7 +3,7 @@
   Version: v2
 */
 
-const CACHE_NAME = "vigenere-pwa-final-c-v2.2";
+const CACHE_NAME = "vigenere-pwa-final-c-v2.3";
 
 const FILES_TO_CACHE = [
   "./",
