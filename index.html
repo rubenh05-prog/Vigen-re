@@ -38,14 +38,11 @@ textarea{
   margin-top:10px;
 }
 
-.key-row input{
-  flex:1;
-}
+.key-row input{ flex:1; }
 
 .key-row button{
   width:48px;
   font-size:18px;
-  padding:0;
 }
 
 button.action{
@@ -72,7 +69,7 @@ button.action{
 
 <h1>Additive Unicode-Chiffre (Vigenère-Prinzip)</h1>
 
-<textarea id="text" placeholder="Text eingeben"></textarea>
+<textarea id="text" placeholder="Text eingeben (Klartext oder Geheimtext)"></textarea>
 
 <div class="key-row">
   <input id="key" type="password" placeholder="Schlüsselwort">
@@ -84,10 +81,18 @@ button.action{
 
 <div id="output" class="output"></div>
 
-<button class="action" onclick="copyOutput()">Ergebnis kopieren</button>
+<button class="action" onclick="copyOutput()">Ergebnis kopieren & zurücksetzen</button>
 
 <script>
-/* ---------- Unicode-Hilfsfunktionen ---------- */
+/* -------------------------------------------------
+   Unicode-Helfer & Normalisierung
+------------------------------------------------- */
+
+function clean(str){
+  return str
+    .normalize("NFC")      // Unicode-Normalisierung
+    .replace(/\r\n/g,"\n");// saubere Zeilenumbrüche
+}
 
 function toCodePoints(str){
   return Array.from(str, ch => ch.codePointAt(0));
@@ -97,43 +102,68 @@ function fromCodePoints(arr){
   return arr.map(cp => String.fromCodePoint(cp)).join("");
 }
 
-/* ---------- Kryptologik ---------- */
+/* -------------------------------------------------
+   Kryptologik (reversibel & stabil)
+------------------------------------------------- */
 
 function vigenereEncrypt(text, key){
   const t = toCodePoints(text);
   const k = toCodePoints(key);
+
   return fromCodePoints(
-    t.map((cp, i) => (cp + k[i % k.length]) % 0x110000)
+    t.map((cp, i) =>
+      (cp + k[i % k.length]) % 0x110000
+    )
   );
 }
 
 function vigenereDecrypt(text, key){
   const t = toCodePoints(text);
   const k = toCodePoints(key);
+
   return fromCodePoints(
-    t.map((cp, i) => (cp - k[i % k.length] + 0x110000) % 0x110000)
+    t.map((cp, i) =>
+      (cp - k[i % k.length] + 0x110000) % 0x110000
+    )
   );
 }
 
-/* ---------- Aktionen ---------- */
+/* -------------------------------------------------
+   Aktionen
+------------------------------------------------- */
 
 function encrypt(){
   if(!key.value){
     alert("Bitte Schlüssel eingeben");
     return;
   }
-  output.textContent = vigenereEncrypt(text.value, key.value);
-  key.value = "";
+
+  const plain = clean(text.value);
+  const k = clean(key.value);
+
+  output.textContent = vigenereEncrypt(plain, k);
 }
 
 function decrypt(){
   if(!key.value){
-    alert("Bitte Schlüssel eingeben");
+    alert("Bitte denselben Schlüssel erneut eingeben");
     return;
   }
-  output.textContent = vigenereDecrypt(text.value, key.value);
-  key.value = "";
+
+  const source =
+    output.textContent.trim() !== ""
+      ? output.textContent
+      : text.value;
+
+  const cipher = clean(source);
+  const k = clean(key.value);
+
+  output.textContent = vigenereDecrypt(cipher, k);
 }
+
+/* -------------------------------------------------
+   Kopieren & Reset
+------------------------------------------------- */
 
 function copyOutput(){
   const value = output.textContent;
@@ -147,7 +177,9 @@ function copyOutput(){
   });
 }
 
-/* ---------- Schlüssel ein/ausblenden ---------- */
+/* -------------------------------------------------
+   Schlüssel ein/ausblenden
+------------------------------------------------- */
 
 function toggleKey(){
   const input = document.getElementById("key");
@@ -162,7 +194,9 @@ function toggleKey(){
   }
 }
 
-/* ---------- PWA ---------- */
+/* -------------------------------------------------
+   PWA
+------------------------------------------------- */
 
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
