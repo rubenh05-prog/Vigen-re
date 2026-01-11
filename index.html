@@ -82,7 +82,7 @@ button.action{
 <button class="action" onclick="copyOutput()">Ergebnis kopieren & zurücksetzen</button>
 
 <div class="note">
-ℹ️ Verschlüsselte Texte werden automatisch Base64-kodiert und sind dadurch Messenger-sicher (WhatsApp, Signal, Telegram).
+ℹ️ Die App erkennt automatisch, ob der Text Base64 (Messenger/E-Mail) oder normaler Text ist.
 </div>
 
 <script>
@@ -91,7 +91,9 @@ button.action{
 ------------------------------------------------- */
 
 function clean(str){
-  return str.normalize("NFC").replace(/\r\n/g,"\n");
+  return str
+    .normalize("NFC")
+    .replace(/\r\n/g,"\n");
 }
 
 function toCodePoints(str){
@@ -123,7 +125,7 @@ function vigenereDecrypt(text, key){
 }
 
 /* -------------------------------------------------
-   Base64-Transport (Messenger-sicher)
+   Base64 Transport (Messenger-sicher)
 ------------------------------------------------- */
 
 function encodeForTransport(str){
@@ -134,9 +136,26 @@ function encodeForTransport(str){
 }
 
 function decodeFromTransport(str){
-  const bin = atob(str.trim());
+  const bin = atob(str);
   const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
   return new TextDecoder().decode(bytes);
+}
+
+/* -------------------------------------------------
+   Automatische Transport-Erkennung
+------------------------------------------------- */
+
+function looksLikeBase64(str){
+  const s = str.trim();
+  if(s.length < 8 || s.length % 4 !== 0) return false;
+  if(!/^[A-Za-z0-9+/=]+$/.test(s)) return false;
+
+  try{
+    atob(s);
+    return true;
+  }catch(e){
+    return false;
+  }
 }
 
 /* -------------------------------------------------
@@ -169,16 +188,21 @@ function decrypt(){
       ? output.textContent
       : text.value;
 
-  let decoded;
-  try{
-    decoded = decodeFromTransport(source);
-  }catch(e){
-    alert("Kein gültiger Base64-Text (möglicherweise beschädigt)");
-    return;
+  let cipherUnicode;
+
+  if(looksLikeBase64(source)){
+    try{
+      cipherUnicode = decodeFromTransport(source.trim());
+    }catch(e){
+      alert("Base64-Dekodierung fehlgeschlagen (Text beschädigt)");
+      return;
+    }
+  }else{
+    cipherUnicode = clean(source);
   }
 
   const k = clean(key.value);
-  output.textContent = vigenereDecrypt(decoded, k);
+  output.textContent = vigenereDecrypt(cipherUnicode, k);
 }
 
 /* -------------------------------------------------
