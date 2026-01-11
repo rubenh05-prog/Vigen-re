@@ -4,60 +4,168 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Additive Unicode-Chiffre (Vigenère-Prinzip)</title>
+
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#007bff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
+
 <style>
-body{font-family:Arial,sans-serif;margin:0;padding:16px;max-width:600px;margin:auto;}
-textarea,input,button{width:100%;padding:12px;margin-top:10px;font-size:1rem;}
-button{background:#007bff;color:#fff;border:none;border-radius:6px;font-weight:bold;}
-.output{background:#f5f5f5;padding:12px;margin-top:16px;white-space:pre-wrap;word-break:break-word;}
+body{
+  font-family:Arial,sans-serif;
+  margin:0;
+  padding:16px;
+  max-width:600px;
+  margin:auto;
+}
+
+textarea,input,button{
+  font-size:1rem;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+textarea{
+  width:100%;
+  min-height:120px;
+  resize:vertical;
+}
+
+.key-row{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.key-row input{
+  flex:1;
+}
+
+.key-row button{
+  width:48px;
+  font-size:18px;
+  padding:0;
+}
+
+button.action{
+  width:100%;
+  margin-top:10px;
+  background:#007bff;
+  color:white;
+  font-weight:bold;
+  border:none;
+}
+
+.output{
+  background:#f5f5f5;
+  padding:12px;
+  margin-top:16px;
+  border-radius:8px;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
 </style>
 </head>
+
 <body>
 
 <h1>Additive Unicode-Chiffre (Vigenère-Prinzip)</h1>
 
 <textarea id="text" placeholder="Text eingeben"></textarea>
-<input id="key" type="password" placeholder="Schlüssel">
 
-<button onclick="encrypt()">Verschlüsseln</button>
-<button onclick="decrypt()">Entschlüsseln</button>
+<div class="key-row">
+  <input id="key" type="password" placeholder="Schlüsselwort">
+  <button type="button" id="toggleKey" onclick="toggleKey()">👁️</button>
+</div>
+
+<button class="action" onclick="encrypt()">Verschlüsseln</button>
+<button class="action" onclick="decrypt()">Entschlüsseln</button>
 
 <div id="output" class="output"></div>
-<button onclick="copyOutput()">Ergebnis kopieren</button>
+
+<button class="action" onclick="copyOutput()">Ergebnis kopieren</button>
 
 <script>
-function toCodePoints(str){return Array.from(str,ch=>ch.codePointAt(0));}
-function fromCodePoints(arr){return arr.map(cp=>String.fromCodePoint(cp)).join("");}
-function vigenereEncrypt(text,key){
- const t=toCodePoints(text),k=toCodePoints(key);
- return fromCodePoints(t.map((cp,i)=>(cp+k[i%k.length])%0x110000));
+/* ---------- Unicode-Hilfsfunktionen ---------- */
+
+function toCodePoints(str){
+  return Array.from(str, ch => ch.codePointAt(0));
 }
-function vigenereDecrypt(text,key){
- const t=toCodePoints(text),k=toCodePoints(key);
- return fromCodePoints(t.map((cp,i)=>(cp-k[i%k.length]+0x110000)%0x110000));
+
+function fromCodePoints(arr){
+  return arr.map(cp => String.fromCodePoint(cp)).join("");
 }
+
+/* ---------- Kryptologik ---------- */
+
+function vigenereEncrypt(text, key){
+  const t = toCodePoints(text);
+  const k = toCodePoints(key);
+  return fromCodePoints(
+    t.map((cp, i) => (cp + k[i % k.length]) % 0x110000)
+  );
+}
+
+function vigenereDecrypt(text, key){
+  const t = toCodePoints(text);
+  const k = toCodePoints(key);
+  return fromCodePoints(
+    t.map((cp, i) => (cp - k[i % k.length] + 0x110000) % 0x110000)
+  );
+}
+
+/* ---------- Aktionen ---------- */
+
 function encrypt(){
- if(!key.value){alert("Bitte Schlüssel eingeben");return;}
- output.textContent=vigenereEncrypt(text.value,key.value);
- key.value="";
+  if(!key.value){
+    alert("Bitte Schlüssel eingeben");
+    return;
+  }
+  output.textContent = vigenereEncrypt(text.value, key.value);
+  key.value = "";
 }
+
 function decrypt(){
- if(!key.value){alert("Bitte Schlüssel eingeben");return;}
- output.textContent=vigenereDecrypt(text.value,key.value);
- key.value="";
+  if(!key.value){
+    alert("Bitte Schlüssel eingeben");
+    return;
+  }
+  output.textContent = vigenereDecrypt(text.value, key.value);
+  key.value = "";
 }
+
 function copyOutput(){
- const v=output.textContent;
- if(!v)return;
- navigator.clipboard.writeText(v).then(()=>{
-  text.value="";key.value="";output.textContent="";text.focus();
- });
+  const value = output.textContent;
+  if(!value) return;
+
+  navigator.clipboard.writeText(value).then(() => {
+    text.value = "";
+    key.value = "";
+    output.textContent = "";
+    text.focus();
+  });
 }
-if("serviceWorker"in navigator){
- navigator.serviceWorker.register("service-worker.js");
+
+/* ---------- Schlüssel ein/ausblenden ---------- */
+
+function toggleKey(){
+  const input = document.getElementById("key");
+  const btn = document.getElementById("toggleKey");
+
+  if(input.type === "password"){
+    input.type = "text";
+    btn.textContent = "🙈";
+  }else{
+    input.type = "password";
+    btn.textContent = "👁️";
+  }
+}
+
+/* ---------- PWA ---------- */
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
 </script>
 
