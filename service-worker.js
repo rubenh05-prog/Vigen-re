@@ -1,9 +1,9 @@
 /* 
   Service Worker – Additive Unicode-Chiffre (Vigenère-Prinzip)
-  Version: v2
+  Version: v2.4
 */
 
-const CACHE_NAME = "vigenere-pwa-final-c-v2.3";
+const CACHE_NAME = "vigenere-pwa-final-c-v2.4";
 
 const FILES_TO_CACHE = [
   "./",
