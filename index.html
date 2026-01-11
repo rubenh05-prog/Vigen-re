@@ -1,161 +1,65 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vigenère UTF-8 Verschlüsselung</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Additive Unicode-Chiffre (Vigenère-Prinzip)</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#007bff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon-192.png">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 16px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-        }
-        h1 {
-            font-size: 1.6rem;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        input, textarea, button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 10px;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            font-weight: bold;
-            margin-top: 16px;
-        }
-        button:active {
-            background: #005fcc;
-        }
-        .output {
-            background: #f5f5f5;
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 18px;
-            word-break: break-word;
-            white-space: pre-wrap;
-        }
-        @media (max-width: 480px) {
-            body { padding: 12px; }
-            h1 { font-size: 1.4rem; }
-            input, textarea, button { font-size: 1.1rem; }
-        }
-    </style>
+<style>
+body{font-family:Arial,sans-serif;margin:0;padding:16px;max-width:600px;margin:auto;}
+textarea,input,button{width:100%;padding:12px;margin-top:10px;font-size:1rem;}
+button{background:#007bff;color:#fff;border:none;border-radius:6px;font-weight:bold;}
+.output{background:#f5f5f5;padding:12px;margin-top:16px;white-space:pre-wrap;word-break:break-word;}
+</style>
 </head>
 <body>
 
-    <h1>Vigenère UTF‑8 Verschlüsselung</h1>
+<h1>Additive Unicode-Chiffre (Vigenère-Prinzip)</h1>
 
-    <label>Text:</label>
-    <textarea id="text" rows="5"></textarea>
+<textarea id="text" placeholder="Text eingeben"></textarea>
+<input id="key" type="password" placeholder="Schlüssel">
 
-    <label>Schlüsselwort:<br><small style="color:#666;">Gut merken!</small></label>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <input id="key" type="password" style="flex:1;">
-        <button type="button" id="toggleKey" onclick="toggleKeyVisibility()" style="width:auto; padding:10px; font-size:18px;">👁️</button>
-    </div>
+<button onclick="encrypt()">Verschlüsseln</button>
+<button onclick="decrypt()">Entschlüsseln</button>
 
-    <button onclick="encrypt()">Verschlüsseln</button>
-    <button onclick="decrypt()">Entschlüsseln</button>
-
-    <h2>Ergebnis:</h2>
-    <div id="output" class="output"></div>
-
-    <button onclick="copyOutput()">Ergebnis kopieren</button>
-
-    <script>
-        // UTF‑8 erweiterte Vigenère
-        function vigenereUTF8Encrypt(text, key) {
-            if (!key) throw new Error("Schlüsselwort fehlt.");
-            let result = "";
-            let keyIndex = 0;
-            for (let i = 0; i < text.length; i++) {
-                const tCode = text.codePointAt(i);
-                const kCode = key.codePointAt(keyIndex % key.length);
-                const newCode = (tCode + kCode) % 1114112; // max Unicode
-                result += String.fromCodePoint(newCode);
-                keyIndex++;
-                if (tCode > 0xFFFF) i++; // Surrogate pair
-            }
-            return result;
-        }
-
-        function vigenereUTF8Decrypt(text, key) {
-            if (!key) throw new Error("Schlüsselwort fehlt.");
-            let result = "";
-            let keyIndex = 0;
-            for (let i = 0; i < text.length; i++) {
-                const tCode = text.codePointAt(i);
-                const kCode = key.codePointAt(keyIndex % key.length);
-                const newCode = (tCode - kCode + 1114112) % 1114112;
-                result += String.fromCodePoint(newCode);
-                keyIndex++;
-                if (tCode > 0xFFFF) i++;
-            }
-            return result;
-        }
-
-        function encrypt() {
-            const text = document.getElementById("text").value;
-            const key = document.getElementById("key").value;
-            if (!key) { alert("Bitte Schlüssel eingeben."); return; }
-            document.getElementById("output").textContent = vigenereUTF8Encrypt(text, key);
-            document.getElementById("key").value = "";
-        }
-
-        function decrypt() {
-            const text = document.getElementById("text").value;
-            const key = document.getElementById("key").value;
-            if (!key) { alert("Bitte Schlüssel eingeben."); return; }
-            document.getElementById("output").textContent = vigenereUTF8Decrypt(text, key);
-            document.getElementById("key").value = "";
-        }
-        function copyOutput() {
-            const text = document.getElementById("output").textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Ergebnis kopiert!");
-            });
-        }
-        function toggleKeyVisibility() {
-            const keyInput = document.getElementById("key");
-            const toggleBtn = document.getElementById("toggleKey");
-            if (keyInput.type === "password") {
-                keyInput.type = "text";
-                toggleBtn.textContent = "🙈";
-            } else {
-                keyInput.type = "password";
-                toggleBtn.textContent = "👁️";
-            }
-        }
-    </script>
-
+<div id="output" class="output"></div>
+<button onclick="copyOutput()">Ergebnis kopieren</button>
 
 <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js");
-  });
+function toCodePoints(str){return Array.from(str,ch=>ch.codePointAt(0));}
+function fromCodePoints(arr){return arr.map(cp=>String.fromCodePoint(cp)).join("");}
+function vigenereEncrypt(text,key){
+ const t=toCodePoints(text),k=toCodePoints(key);
+ return fromCodePoints(t.map((cp,i)=>(cp+k[i%k.length])%0x110000));
+}
+function vigenereDecrypt(text,key){
+ const t=toCodePoints(text),k=toCodePoints(key);
+ return fromCodePoints(t.map((cp,i)=>(cp-k[i%k.length]+0x110000)%0x110000));
+}
+function encrypt(){
+ if(!key.value){alert("Bitte Schlüssel eingeben");return;}
+ output.textContent=vigenereEncrypt(text.value,key.value);
+ key.value="";
+}
+function decrypt(){
+ if(!key.value){alert("Bitte Schlüssel eingeben");return;}
+ output.textContent=vigenereDecrypt(text.value,key.value);
+ key.value="";
+}
+function copyOutput(){
+ const v=output.textContent;
+ if(!v)return;
+ navigator.clipboard.writeText(v).then(()=>{
+  text.value="";key.value="";output.textContent="";text.focus();
+ });
+}
+if("serviceWorker"in navigator){
+ navigator.serviceWorker.register("service-worker.js");
 }
 </script>
+
 </body>
 </html>
